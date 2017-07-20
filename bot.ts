@@ -2,7 +2,10 @@ import { Chat } from './chat';
 import { Conversation } from "./conversation";
 
 const Telebot = require('telebot');
-const bot = new Telebot('408714976:AAH8YMXXtGmAiRgxFJMlBy0Jz_P2PryGNKw');
+
+require('dotenv').config()
+
+const bot = new Telebot(process.env.BOT_API_KEY);
 
 let chats: Array<Chat> = [];
 
