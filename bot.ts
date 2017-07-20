@@ -1,48 +1,77 @@
-import { Game } from './game';
-import { Player } from './player';
+import { Chat } from './chat';
+import { Conversation } from "./conversation";
 
 const Telebot = require('telebot');
 const bot = new Telebot('408714976:AAH8YMXXtGmAiRgxFJMlBy0Jz_P2PryGNKw');
-let spamVictims: Array<NodeJS.Timer> = [];
-bot.on(['/start', '/hello'], (msg: any) => {
-    console.log('received ' + msg.text);
-    msg.reply.text('Welcome!')
+
+let chats: Array<Chat> = [];
+
+// FUNCTIONS
+function isInit(chatId: string) {
+    if (chats.length === 0) {
+        return false;
+    } else {
+        let index: number;
+        index = chats.findIndex((chat: Chat) => {
+            return (chat.chatId === chatId);
+        });
+        return !(index === -1);
+    }
+}
+
+function getData(msg: any): string {
+    const offset: number = msg.entities[0].length;
+    console.log('Got command offset as: ' + offset);
+    const data: string = (<string>msg.text).slice(offset + 1);
+    console.log('Got data as: ' + data);
+    return data;
+}
+
+// BOT LOGIC
+
+bot.on('/start', (msg: any) => {
+    /* 
+    === Bot initialization ===
+    If started in the Private Chat, the bot should provide instructions only
+    If started in Group/Supergroup, the bot will initialize a Chat object and store it to session
+    */
+    let chatType: string = msg.chat.type;
+
+    switch (chatType) {
+        case 'private':
+            msg.reply.text('Hi! This is a private chat.');
+            break;
+        case 'group':
+        case 'supergroup':
+            Promise.resolve(true).then((res) => {
+                return msg.reply.text('Hi! this is a ' + chatType + '.');
+            }).then((res) => {
+                return msg.reply.text('Checking if I know you guys...');
+            }).then((res) => {
+                if (isInit(msg.chat.id)) {
+                    msg.reply.text('Yes! I\'ve previously been introduced to ' + msg.chat.title + '!');
+                    throw "Chat previously initialized";
+                } else {
+                    let chat = new Chat(msg.chat.id);
+                    chats.push(chat);
+                    return msg.reply.text('Nope, so initializing now...');
+                }
+            }).then((res) => {
+                msg.reply.text('Ok. Done! Try again!');
+            }).catch((reason) => {
+                console.log(reason);
+            });
+
+
+            break;
+        case 'channel':
+            msg.reply.text('Hi! I shouldn\'t be here.');
+            break;
+        default:
+            msg.reply.text('If you see this message, something is very wrong.');
+            break;
+    }
+
 });
 
-bot.on(['/testclass'], (msg: any) => {
-    let player = new Player('wildplayer99', '1212');
-    let game = new Game('a wild game');
-    game.players.push(player);
-    return msg.reply.text(JSON.stringify(game));
-});
-
-bot.on(['/whattoeat'], (msg: any) => {
-    let lunches = [
-        'a knuckle sandwich',
-        'five lightly toasted peanuts',
-        'peanut butter jelly',
-        'NEIN EATS. EU FATS.',
-        'McSpicy Triple Upsize w/ AISU KURIMU',
-        '1 slice of bread. raw.',
-        'chicken rice, but without chicken.'
-    ];
-    const choice = Math.floor(Math.random() * lunches.length);
-    return msg.reply.text(lunches[choice]);
-});
-
-bot.on(['/spamme'], (msg: any) => {
-    msg.reply.text('Really? Okay...');
-    let counter = 0;
-    let result = setInterval(() => {
-        msg.reply.text('spam #' + counter);
-        counter++;
-    }, 1000);
-    spamVictims.push(result);
-});
-
-bot.on(['/stopspam'], (msg: any) => {
-    msg.reply.text('Ohkay.');
-    clearInterval(spamVictims[0]);
-    spamVictims.pop();
-});
 bot.start();
