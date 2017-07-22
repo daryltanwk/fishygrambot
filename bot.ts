@@ -10,7 +10,8 @@ const bot = new Telebot(process.env.BOT_API_KEY);
 let chats: Array<Chat> = [];
 
 // FUNCTIONS
-function isInit(chatId: string) {
+function isInit(msg: any) {
+    let chatId = msg.chat.id;
     if (chats.length === 0) {
         return false;
     } else {
@@ -30,6 +31,12 @@ function getData(msg: any): string {
     return data;
 }
 
+function getChatIndex(chatId: string): number {
+    return chats.findIndex((chat) => {
+        return (chat.chatId === chatId);
+    });
+}
+
 // BOT LOGIC
 
 bot.on('/start', (msg: any) => {
@@ -46,14 +53,14 @@ bot.on('/start', (msg: any) => {
             break;
         case 'group':
         case 'supergroup':
-            Promise.resolve(true).then((res) => {
+            Promise.resolve().then((res) => {
                 return msg.reply.text('Hi! this is a ' + chatType + '.');
             }).then((res) => {
                 return msg.reply.text('Checking if I know you guys...');
             }).then((res) => {
-                if (isInit(msg.chat.id)) {
+                if (isInit(msg)) {
                     msg.reply.text('Yes! I\'ve previously been introduced to ' + msg.chat.title + '!');
-                    throw "Chat previously initialized";
+                    throw 'Chat previously initialized';
                 } else {
                     let chat = new Chat(msg.chat.id);
                     chats.push(chat);
@@ -64,8 +71,6 @@ bot.on('/start', (msg: any) => {
             }).catch((reason) => {
                 console.log(reason);
             });
-
-
             break;
         case 'channel':
             msg.reply.text('Hi! I shouldn\'t be here.');
@@ -74,6 +79,41 @@ bot.on('/start', (msg: any) => {
             msg.reply.text('If you see this message, something is very wrong.');
             break;
     }
+
+});
+
+bot.on('/addFood', (msg: any) => {
+    if (isInit(msg)) {
+        Promise.resolve().then((res) => {
+            return getData(msg);
+        }).then((res: string) => {
+            if (!res) {
+                return msg.reply.text('You didn\'t specify any food to add!');
+            } else {
+                // Add item into the list
+                chats[getChatIndex(msg.chat.id)].lunchItems.push(res);
+                return msg.reply.text('Adding ' + res + ' to the list...');
+            }
+        }).then((res) => {
+            bot.event('/listFood', msg);
+        });
+    } else {
+        bot.event('/start', msg)
+    }
+});
+bot.on('/listFood', (msg: any) => {
+    if (isInit(msg)) {
+        let result =
+            'Current Menu Items\n' +
+            '======================\n';
+        chats[getChatIndex(msg.chat.id)].lunchItems.forEach((item) => {
+            result = result + item + '\n';
+        });
+        msg.reply.text(result);
+    }
+});
+
+bot.on('/removeFood', (msg: any) => {
 
 });
 
