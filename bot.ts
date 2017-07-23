@@ -1,5 +1,5 @@
 import { Chat } from './chat';
-import { Conversation } from "./conversation";
+import { Conversation, TOPIC } from "./conversation";
 
 const Telebot = require('telebot');
 
@@ -25,9 +25,7 @@ function isInit(msg: any) {
 
 function getData(msg: any): string {
     const offset: number = msg.entities[0].length;
-    console.log('Got command offset as: ' + offset);
     const data: string = (<string>msg.text).slice(offset + 1);
-    console.log('Got data as: ' + data);
     return data;
 }
 
@@ -35,6 +33,15 @@ function getChatIndex(chatId: string): number {
     return chats.findIndex((chat) => {
         return (chat.chatId === chatId);
     });
+}
+
+function removeFood(chatIndex: number, removeIndex: number, msg: any) {
+    if (chats[chatIndex].lunchItems.length >= removeIndex) {
+        let removedItem = chats[chatIndex].lunchItems.splice(removeIndex - 1, 1)[0];
+        return msg.reply.text('Removed ' + removedItem + ' from the list.');
+    } else {
+        return msg.reply.text('Sorry, didn\'t quite get that. Nothing was removed.');
+    }
 }
 
 // BOT LOGIC
@@ -69,7 +76,7 @@ bot.on('/start', (msg: any) => {
             }).then((res) => {
                 msg.reply.text('Ok. Done! Try again!');
             }).catch((reason) => {
-                console.log(reason);
+                // Do nothing. For now.
             });
             break;
         case 'channel':
@@ -82,7 +89,7 @@ bot.on('/start', (msg: any) => {
 
 });
 
-bot.on('/addFood', (msg: any) => {
+bot.on('/addfood', (msg: any) => {
     if (isInit(msg)) {
         Promise.resolve().then((res) => {
             return getData(msg);
@@ -95,26 +102,106 @@ bot.on('/addFood', (msg: any) => {
                 return msg.reply.text('Adding ' + res + ' to the list...');
             }
         }).then((res) => {
-            bot.event('/listFood', msg);
+            bot.event('/listfood', msg);
         });
     } else {
         bot.event('/start', msg)
     }
 });
-bot.on('/listFood', (msg: any) => {
+bot.on('/listfood', (msg: any) => {
     if (isInit(msg)) {
         let result =
             'Current Menu Items\n' +
             '======================\n';
-        chats[getChatIndex(msg.chat.id)].lunchItems.forEach((item) => {
-            result = result + item + '\n';
+        chats[getChatIndex(msg.chat.id)].lunchItems.forEach((item, index) => {
+            result = result + (index + 1) + ') ' + item + '\n';
         });
-        msg.reply.text(result);
+        return msg.reply.text(result);
     }
 });
 
-bot.on('/removeFood', (msg: any) => {
+bot.on('/removefood', (msg: any) => {
+    if (isInit(msg)) {
+        let data = getData(msg);
+        if (data) {
+            // If data provided
+            let removeIndex = Number.parseInt(data);
+            removeFood(getChatIndex(msg.chat.id), removeIndex, msg);
+        } else {
+            // If no data provided
+            Promise.resolve().then((res) => {
+                return bot.event('/listfood', msg);
+            }).then((res) => {
+                let forceReply = {
+                    force_reply: true
+                };
+                return bot.sendMessage(
+                    msg.chat.id,
+                    'Enter the number of the item you wish to remove.',
+                    {
+                        replyMarkup: forceReply
+                    }
+                )
+            }).then((res) => {
+                // Create a conversation
+                let message = res.result;
+                let conversation = new Conversation(message, TOPIC.RemoveFood);
+                chats[getChatIndex(message.chat.id)].conversations.push(conversation);
+            });
+        }
+    }
+});
 
+bot.on('/whattoeat', (msg: any) => {
+    if (isInit(msg)) {
+        // Check if there are lunch items
+        let chatIndex = getChatIndex(msg.chat.id);
+        if (chats[chatIndex].lunchItems.length > 0) {
+            let chosenIndex = Math.floor(Math.random() * chats[chatIndex].lunchItems.length);
+            return msg.reply.text(chats[chatIndex].lunchItems[chosenIndex]);
+        }
+    }
+});
+
+bot.on('text', (msg: any) => {
+    let chatId: string = msg.chat.id;
+    let chatIndex: number = getChatIndex(chatId);
+    let incomingReplyMsgId: string;
+    if (typeof msg.reply_to_message !== 'undefined') {
+        incomingReplyMsgId = msg.reply_to_message.message_id;
+    }
+
+    // Check if any conversations are open
+    if (typeof chats[chatIndex] !== 'undefined' &&
+        typeof chats[chatIndex].conversations !== 'undefined' &&
+        chats[chatIndex].conversations.length > 0) {
+        let convoIndex: number = chats[chatIndex].conversations.findIndex((convo) => {
+            return (convo.msg.message_id === incomingReplyMsgId);
+        });
+
+        // Check if incomingReplyMsgId is valid
+        if (convoIndex !== -1) {
+            // Check TOPIC
+            switch (chats[chatIndex].conversations[convoIndex].topic) {
+                case TOPIC.RemoveFood:
+                    let removeIndex: number = Number.parseInt(msg.text);
+                    // Check if item is valid
+                    Promise.resolve().then((res) => {
+                        return removeFood(chatIndex, removeIndex, msg)
+                    }).then((res) => {
+                        // End the conversation
+                        chats[chatIndex].conversations.splice(convoIndex, 1);
+                    });
+                    break;
+                case TOPIC.Generic:
+                    // Do nothing. For now.    
+                    break;
+
+                default:
+                    break;
+            }
+        }
+    }
 });
 
 bot.start();
