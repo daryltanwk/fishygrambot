@@ -8,6 +8,18 @@ require('dotenv').config()
 const bot = new Telebot(process.env.BOT_API_KEY);
 
 let chats: Array<Chat> = [];
+const maxDataLength: number = 30;
+const bodyParts: Array<string> = [
+    'head',
+    'knee',
+    'torso',
+    'eyelashes',
+    'pinkie',
+    'toenails',
+    'left earlobe, chewed once',
+    'nosehair',
+    'preserved poop samples'
+];
 
 // FUNCTIONS
 function isInit(msg: any) {
@@ -21,6 +33,18 @@ function isInit(msg: any) {
         });
         return !(index === -1);
     }
+}
+
+function dataHasHyperlink(data: string): boolean {
+    return (data.search(/https?:\/\//) !== -1);
+}
+
+function dataHasNextline(data: string): boolean {
+    return (data.search('\n') !== -1);
+}
+
+function dataIsTooLong(data: string): boolean {
+    return (data.length > maxDataLength);
 }
 
 function getData(msg: any): string {
@@ -97,9 +121,19 @@ bot.on('/addfood', (msg: any) => {
             if (!res) {
                 return msg.reply.text('You didn\'t specify any food to add!');
             } else {
-                // Add item into the list
-                chats[getChatIndex(msg.chat.id)].lunchItems.push(res);
-                return msg.reply.text('Adding ' + res + ' to the list...');
+                // Check for hyperlinks
+                if (dataHasHyperlink(res) || dataHasNextline(res) || dataIsTooLong(res)) {
+                    // Add a troll message
+                    let bodyPartIndex = Math.floor(Math.random() * bodyParts.length);
+                    let trollMsg = msg.from.first_name + '\'s ' + bodyParts[bodyPartIndex];
+                    chats[getChatIndex(msg.chat.id)].lunchItems.push(trollMsg);
+                    return msg.reply.text('Adding ' + trollMsg + ' to the list...');
+
+                } else {
+                    // Add item into the list
+                    chats[getChatIndex(msg.chat.id)].lunchItems.push(res);
+                    return msg.reply.text('Adding ' + res + ' to the list...');
+                }
             }
         }).then((res) => {
             bot.event('/listfood', msg);
