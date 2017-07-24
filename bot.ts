@@ -36,7 +36,7 @@ function getChatIndex(chatId: string): number {
 }
 
 function removeFood(chatIndex: number, removeIndex: number, msg: any) {
-    if (chats[chatIndex].lunchItems.length >= removeIndex) {
+    if (chats[chatIndex].lunchItems.length >= removeIndex && removeIndex > 0) {
         let removedItem = chats[chatIndex].lunchItems.splice(removeIndex - 1, 1)[0];
         return msg.reply.text('Removed ' + removedItem + ' from the list.');
     } else {
@@ -133,13 +133,15 @@ bot.on('/removefood', (msg: any) => {
                 return bot.event('/listfood', msg);
             }).then((res) => {
                 let forceReply = {
-                    force_reply: true
+                    force_reply: true,
+                    selective: true
                 };
                 return bot.sendMessage(
                     msg.chat.id,
                     'Enter the number of the item you wish to remove.',
                     {
-                        replyMarkup: forceReply
+                        replyMarkup: forceReply,
+                        replyToMessage: msg.message_id
                     }
                 )
             }).then((res) => {
