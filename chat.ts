@@ -14,5 +14,15 @@ export class Chat {
         }
         let convo = new Conversation(msg, topic);
         this.conversations.push(convo);
+        // Set Timeout before forgetting the conversation
+        setTimeout(() => {
+            // Check if conversation is still present
+            let forgetIndex = this.conversations.findIndex((convo) => {
+                return (convo.msg.message_id === msg.message_id);
+            });
+            if (forgetIndex !== -1) {
+                this.conversations.splice(forgetIndex, 1);
+            }
+        }, 600000);
     };
 }
