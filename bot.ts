@@ -181,8 +181,7 @@ bot.on('/removefood', (msg: any) => {
             }).then((res) => {
                 // Create a conversation
                 let message = res.result;
-                let conversation = new Conversation(message, TOPIC.RemoveFood);
-                chats[getChatIndex(message.chat.id)].conversations.push(conversation);
+                chats[getChatIndex(message.chat.id)].addConversation(message, TOPIC.RemoveFood);
             });
         }
     }
