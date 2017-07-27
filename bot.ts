@@ -223,22 +223,29 @@ bot.on('/startguess', (msg: any) => {
         let difficulty: number = 4; // TODO: ALLOW DIFFICULTY TO BE SET
         chats[chatIndex].guessGame = new GuessGame(difficulty);
         return msg.reply.text(
-            'A new GuessGame was started!\n\n' +
-            'The current difficulty is set to: ' + difficulty + ' digits.\n' +
+            '===New GuessGame===\n' +
+            'Difficulty Level: ' + difficulty + ' digits.\n\n' +
+
             'Use /guess <number> to submit your guesses. I will let you know:\n' +
             '1) Correct digits, in correct positions\n' +
             '2) Correct digits, in wrong positions\n\n' +
+
             'Use /guessstatus to check how badly you\'re failing at this game\n\n' +
+
             'Use /stopguess to surrender to my superior intellect, and I will reveal the answer to your weak minds.\n\n' +
+
             'Good Luck! You\'re going to need it, noobcakes.'
         );
     }
+
 
 });
 // Makes a guess
 bot.on('/guess', (msg: any) => {
     if (!isInit(msg)) {
         return msg.reply.text('Please initialize bot first? Stupid.');
+    } else if (!hasGuessGame(msg)) {
+        return msg.reply.text('There is no ongoing game now. Start one with /startguess!');
     } else {
         let chatIndex = getChatIndex(msg.chat.id);
 
@@ -270,7 +277,7 @@ bot.on('/guess', (msg: any) => {
             if (res) {
                 // You Win
                 delete chats[chatIndex].guessGame;
-                return msg.reply.text('YOU WIN! Betcha\' can\'t do it again!');
+                return msg.reply.text('\u{1f389} \u{1f389} ' + msg.from.first_name + ' made a LUCKY GUESS of ' + getData(msg) + ' and won! \u{1f389} \u{1f389}');
             } else {
                 // Continue guessing
                 bot.event('/guessstatus', msg);
@@ -278,7 +285,7 @@ bot.on('/guess', (msg: any) => {
         }).catch((rej) => {
             // Catch Invalid data
             msg.reply.text(
-                'Something bad hapened!\n' +
+                'Something bad happened!\n' +
                 'Reason: ' + rej);
         });
     }
@@ -287,12 +294,14 @@ bot.on('/guess', (msg: any) => {
 bot.on('/stopguess', (msg: any) => {
     if (!isInit(msg)) {
         return msg.reply.text('Please initialize bot first? Stupid.');
+    } else if (!hasGuessGame(msg)) {
+        return msg.reply.text('There is no ongoing game now. Start one with /startguess!');
     } else {
         let chatIndex = getChatIndex(msg.chat.id);
         Promise.resolve().then((res) => {
             // Acknowledge command and reveal results
             return msg.reply.text(
-                'I knew it. Loser.' +
+                'I knew you guys couldn\'t solve it. Losers!\n' +
                 'The answer was ' + chats[chatIndex].guessGame.getAnswer().toString());
         }).then((res) => {
             // Remove game
@@ -304,17 +313,16 @@ bot.on('/stopguess', (msg: any) => {
 bot.on('/guessstatus', (msg: any) => {
     if (!isInit(msg)) {
         return msg.reply.text('Please initialize bot first? Stupid.');
+    } else if (!hasGuessGame(msg)) {
+        return msg.reply.text('There is no ongoing game now. Start one with /startguess!');
     } else {
         // Prints updated status
         let chatIndex = getChatIndex(msg.chat.id);
         let attempts = chats[chatIndex].guessGame.getAttempts();
         let reply =
-            'GuessGame Status\n' +
-            '===================\n' +
-            'Attempts made: ' + attempts.length + '\n\n' +
-
-            'Legend\n' +
-            '===================\n' +
+            '===GuessGame Status===\n' +
+            'Difficulty: ' + chats[chatIndex].guessGame.getAnswer().length + '\n' +
+            '==Legend==\n' +
             '\u{1f535}: Correct digit, correct position\n' +
             '\u{1f534}: Correct digit, wrong position\n\n';
 
@@ -325,9 +333,8 @@ bot.on('/guessstatus', (msg: any) => {
             });
 
             let addOn: string =
-                'Attempt #' + (index + 1) + ' by ' + attempt.getGuesser() + '\n' +
-                'Guess: ' + guessStr + '\n' +
-                '\u{1f535}: ' + attempt.getResult().correct + '\u{1f534}: ' + attempt.getResult().numOnly + '\n';
+                '[#' + (index + 1) + '] -- ' + attempt.getGuesser() + '\n' +
+                '< ' + guessStr + ' >    \u{1f535} [' + attempt.getResult().correct + ']    \u{1f534} [' + attempt.getResult().numOnly + ']\n';
             reply += addOn;
         });
         return msg.reply.text(reply);
