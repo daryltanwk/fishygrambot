@@ -1,8 +1,10 @@
+import { GuessGame } from './guessgame';
 import { Conversation, TOPIC } from "./conversation";
 
 export class Chat {
     public conversations: Array<Conversation>;
     public lunchItems: Array<string>;
+    public guessGame: GuessGame;
     constructor(public chatId: string) {
         this.conversations = [];
         this.lunchItems = [];
