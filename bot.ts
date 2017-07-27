@@ -1,3 +1,4 @@
+import { GuessGame, Attempt } from './guessgame';
 import { Chat } from './chat';
 import { Conversation, TOPIC } from "./conversation";
 
@@ -33,6 +34,12 @@ function isInit(msg: any) {
         });
         return !(index === -1);
     }
+}
+
+function hasGuessGame(msg: any) {
+    let chatId = msg.chat.id;
+    let chatIndex = getChatIndex(chatId);
+    return (typeof chats[chatIndex].guessGame !== 'undefined');
 }
 
 function dataHasHyperlink(data: string): boolean {
@@ -197,6 +204,137 @@ bot.on('/whattoeat', (msg: any) => {
         }
     }
 });
+
+// GUESSING GAME LOGIC
+// Starts the guessing game
+bot.on('/startguess', (msg: any) => {
+    if (!isInit(msg)) {
+        return msg.reply.text('Please initialize bot first? Stupid.');
+    }
+
+    let chatIndex: number = getChatIndex(msg.chat.id);
+    if (hasGuessGame(msg)) {
+        return msg.reply.text(
+            'There is already an ongoing GuessGame!\n' +
+            'Use /guessstatus to see your current progress!'
+        );
+
+    } else {
+        let difficulty: number = 4; // TODO: ALLOW DIFFICULTY TO BE SET
+        chats[chatIndex].guessGame = new GuessGame(difficulty);
+        return msg.reply.text(
+            'A new GuessGame was started!\n\n' +
+            'The current difficulty is set to: ' + difficulty + ' digits.\n' +
+            'Use /guess <number> to submit your guesses. I will let you know:\n' +
+            '1) Correct digits, in correct positions\n' +
+            '2) Correct digits, in wrong positions\n\n' +
+            'Use /guessstatus to check how badly you\'re failing at this game\n\n' +
+            'Use /stopguess to surrender to my superior intellect, and I will reveal the answer to your weak minds.\n\n' +
+            'Good Luck! You\'re going to need it, noobcakes.'
+        );
+    }
+
+});
+// Makes a guess
+bot.on('/guess', (msg: any) => {
+    if (!isInit(msg)) {
+        return msg.reply.text('Please initialize bot first? Stupid.');
+    } else {
+        let chatIndex = getChatIndex(msg.chat.id);
+
+        Promise.resolve().then((res) => {
+            let valid: boolean = false;
+            let result: Array<number> = [];
+
+            let difficulty = chats[chatIndex].guessGame.getAnswer().length;
+            let data = getData(msg);
+            let strArr = data.split('');
+
+            if (strArr.length !== difficulty) {
+                throw 'Wrong length';
+            }
+            strArr.forEach((char) => {
+                let digit = Number.parseInt(char);
+                if (Number.isNaN(digit)) {
+                    throw char + ' is not a digit!';
+                }
+                result.push(digit);
+            });
+            return result;
+
+        }).then((res) => {
+            // Submit valid data
+            return chats[chatIndex].guessGame.submitGuess(res, msg.from.first_name);
+        }).then((res) => {
+            // Print updated status
+            if (res) {
+                // You Win
+                delete chats[chatIndex].guessGame;
+                return msg.reply.text('YOU WIN! Betcha\' can\'t do it again!');
+            } else {
+                // Continue guessing
+                bot.event('/guessstatus', msg);
+            }
+        }).catch((rej) => {
+            // Catch Invalid data
+            msg.reply.text(
+                'Something bad hapened!\n' +
+                'Reason: ' + rej);
+        });
+    }
+});
+// Ends the guessing game
+bot.on('/stopguess', (msg: any) => {
+    if (!isInit(msg)) {
+        return msg.reply.text('Please initialize bot first? Stupid.');
+    } else {
+        let chatIndex = getChatIndex(msg.chat.id);
+        Promise.resolve().then((res) => {
+            // Acknowledge command and reveal results
+            return msg.reply.text(
+                'I knew it. Loser.' +
+                'The answer was ' + chats[chatIndex].guessGame.getAnswer().toString());
+        }).then((res) => {
+            // Remove game
+            delete chats[chatIndex].guessGame;
+        });
+    }
+});
+//  Replies with the current status of the game
+bot.on('/guessstatus', (msg: any) => {
+    if (!isInit(msg)) {
+        return msg.reply.text('Please initialize bot first? Stupid.');
+    } else {
+        // Prints updated status
+        let chatIndex = getChatIndex(msg.chat.id);
+        let attempts = chats[chatIndex].guessGame.getAttempts();
+        let reply =
+            'GuessGame Status\n' +
+            '===================\n' +
+            'Attempts made: ' + attempts.length + '\n\n' +
+
+            'Legend\n' +
+            '===================\n' +
+            '\u{1f535}: Correct digit, correct position\n' +
+            '\u{1f534}: Correct digit, wrong position\n\n';
+
+        attempts.forEach((attempt: Attempt, index: number) => {
+            let guessStr: string = '';
+            attempt.getGuess().forEach((digit) => {
+                guessStr = guessStr + digit;
+            });
+
+            let addOn: string =
+                'Attempt #' + (index + 1) + ' by ' + attempt.getGuesser() + '\n' +
+                'Guess: ' + guessStr + '\n' +
+                '\u{1f535}: ' + attempt.getResult().correct + '\u{1f534}: ' + attempt.getResult().numOnly + '\n';
+            reply += addOn;
+        });
+        return msg.reply.text(reply);
+    }
+});
+
+// MISC LOGIC
 
 bot.on('text', (msg: any) => {
     let chatId: string = msg.chat.id;
