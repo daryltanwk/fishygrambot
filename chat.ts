@@ -1,13 +1,15 @@
+import { Chooser } from './chooser';
 import { GuessGame } from './guessgame';
 import { Conversation, TOPIC } from "./conversation";
 
 export class Chat {
     public conversations: Array<Conversation>;
-    public lunchItems: Array<string>;
     public guessGame: GuessGame;
+    public chooser: Chooser;
+
     constructor(public chatId: string) {
         this.conversations = [];
-        this.lunchItems = [];
+        this.chooser = new Chooser([]);
     }
 
     addConversation(msg: any, topic?: TOPIC) {
