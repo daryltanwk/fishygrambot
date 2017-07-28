@@ -97,7 +97,8 @@ bot.on(['/additem', '/removeitem', '/listitem', '/pickitem'], (msg: any) => {
     if (isInit(msg)) {
         let chatIndex = getChatIndex(msg.chat.id);
         // Do Logic
-        let command = getCommand(msg);
+        let rawCommand = getCommand(msg);
+        let command = rawCommand.split('@')[0];
         switch (command) {
             case 'additem':
                 Promise.resolve().then((res) => {
