@@ -184,7 +184,7 @@ bot.on(['/ggstart', '/ggstop', '/gg', '/ggstatus'], (msg: any) => {
             case 'ggstart':
                 if (!hasGuessGame(msg)) {
                     let difficulty = 5; // TODO: allow player to select difficulty?
-                    chats[chatIndex].guessGame = new GuessGame(4);
+                    chats[chatIndex].guessGame = new GuessGame(difficulty);
                     return msg.reply.text(
                         '=== GuessGame ===\n' +
                         'Difficulty: ' + difficulty + ' digits\n\n' +
