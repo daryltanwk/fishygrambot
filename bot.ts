@@ -253,7 +253,7 @@ bot.on(['/ggstart', '/ggstop', '/gg', '/ggstatus'], (msg: any) => {
                         return bot.deleteMessage(msg.chat.id, msg.message_id);
                     }).catch((reason) => {
                         msg.reply.text(
-                            'Sorry ' + msg.from.first_name + ', a disaster occured!' +
+                            'Sorry ' + msg.from.first_name + ', a disaster occured!\n' +
                             'Error: ' + reason
                         ).then((res: any) => {
                             return setTimeout(() => {
@@ -269,8 +269,10 @@ bot.on(['/ggstart', '/ggstop', '/gg', '/ggstatus'], (msg: any) => {
             case 'ggstatus':
                 if (hasGuessGame(msg)) {
                     let dispText = chats[chatIndex].guessGame.getStatusText();
+                    let oldDispMsg = chats[chatIndex].guessGame.getDisplayMsg();
                     msg.reply.text(dispText).then((res: any) => {
                         chats[chatIndex].guessGame.setDisplayMsg(res.result.message_id);
+                        bot.deleteMessage(msg.chat.id, oldDispMsg);
                     });
                 } else {
                     return msg.reply.text(noGuessGameText);
