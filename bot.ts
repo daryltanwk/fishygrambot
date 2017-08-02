@@ -93,6 +93,7 @@ bot.on('/start', (msg: any) => {
 
 });
 
+// CHOOSER MODULE COMMANDS
 bot.on(['/additem', '/removeitem', '/listitem', '/pickitem'], (msg: any) => {
     if (isInit(msg)) {
         let chatIndex = getChatIndex(msg.chat.id);
@@ -108,7 +109,7 @@ bot.on(['/additem', '/removeitem', '/listitem', '/pickitem'], (msg: any) => {
                 }).then((res) => {
                     if (res.isValid) {
                         chats[chatIndex].chooser.addItems(res.itemArr);
-                        let reply = 'Added :\n';
+                        let reply = 'Added:\n';
                         res.itemArr.forEach((item) => {
                             reply += item + ', ';
                         });
@@ -130,7 +131,7 @@ bot.on(['/additem', '/removeitem', '/listitem', '/pickitem'], (msg: any) => {
                 }).then((res) => {
                     if (res.isValid) {
                         let removedItems = chats[chatIndex].chooser.removeItems(res.indices);
-                        let reply = 'Removed: \n';
+                        let reply = 'Removed:\n';
                         removedItems.forEach((itm) => {
                             reply += itm + ', ';
                         });
@@ -170,139 +171,116 @@ bot.on(['/additem', '/removeitem', '/listitem', '/pickitem'], (msg: any) => {
     }
 });
 
-// GUESSING GAME LOGIC
-// Starts the guessing game
-bot.on('/startguess', (msg: any) => {
-    if (!isInit(msg)) {
-        return msg.reply.text('Please initialize bot first? Stupid.');
-    }
+// GUESSGAME MODULE COMMANDS
+bot.on(['/ggstart', '/ggstop', '/gg', '/ggstatus'], (msg: any) => {
+    if (isInit(msg)) {
+        let noGuessGameText = 'There is no ongoing game at the moment. Run /ggstart to start a new GuessGame!';
 
-    let chatIndex: number = getChatIndex(msg.chat.id);
-    if (hasGuessGame(msg)) {
-        return msg.reply.text(
-            'There is already an ongoing GuessGame!\n' +
-            'Use /guessstatus to see your current progress!'
-        );
-
-    } else {
-        let difficulty: number = 4; // TODO: ALLOW DIFFICULTY TO BE SET
-        chats[chatIndex].guessGame = new GuessGame(difficulty);
-        return msg.reply.text(
-            '===New GuessGame===\n' +
-            'Difficulty Level: ' + difficulty + ' digits.\n\n' +
-
-            'Use /guess <number> to submit your guesses. I will let you know:\n' +
-            '1) Correct digits, in correct positions\n' +
-            '2) Correct digits, in wrong positions\n\n' +
-
-            'Use /guessstatus to check how badly you\'re failing at this game\n\n' +
-
-            'Use /stopguess to surrender to my superior intellect, and I will reveal the answer to your weak minds.\n\n' +
-
-            'Good Luck! You\'re going to need it, noobcakes.'
-        );
-    }
-
-
-});
-// Makes a guess
-bot.on('/guess', (msg: any) => {
-    if (!isInit(msg)) {
-        return msg.reply.text('Please initialize bot first? Stupid.');
-    } else if (!hasGuessGame(msg)) {
-        return msg.reply.text('There is no ongoing game now. Start one with /startguess!');
-    } else {
         let chatIndex = getChatIndex(msg.chat.id);
+        let data = getData(msg);
+        let command = getCommand(msg).split('@')[0];
 
-        Promise.resolve().then((res) => {
-            let valid: boolean = false;
-            let result: Array<number> = [];
+        switch (command) {
+            case 'ggstart':
+                if (!hasGuessGame(msg)) {
+                    let difficulty = 5; // TODO: allow player to select difficulty?
+                    chats[chatIndex].guessGame = new GuessGame(difficulty);
+                    return msg.reply.text(
+                        '=== GuessGame ===\n' +
+                        'Difficulty: ' + difficulty + ' digits\n\n' +
 
-            let difficulty = chats[chatIndex].guessGame.getAnswer().length;
-            let data = getData(msg);
-            let strArr = data.split('');
+                        'Use /gg <number> to make a guess\n' +
+                        'Use /ggstatus to check status of the game\n' +
+                        'Use /ggstop to end the game and reveal the answer\n\n' +
 
-            if (strArr.length !== difficulty) {
-                throw 'Wrong length';
-            }
-            strArr.forEach((char) => {
-                let digit = Number.parseInt(char);
-                if (Number.isNaN(digit)) {
-                    throw char + ' is not a digit!';
+                        'Good luck! You\'re going to need it'
+                    );
+                } else {
+                    return msg.reply.text('There is already an ongoing game! Type /ggstatus to check the status of the game!');
                 }
-                result.push(digit);
-            });
-            return result;
-
-        }).then((res) => {
-            // Submit valid data
-            return chats[chatIndex].guessGame.submitGuess(res, msg.from.first_name);
-        }).then((res) => {
-            // Print updated status
-            if (res) {
-                // You Win
-                delete chats[chatIndex].guessGame;
-                return msg.reply.text('\u{1f389} \u{1f389} ' + msg.from.first_name + ' made a LUCKY GUESS of ' + getData(msg) + ' and won! \u{1f389} \u{1f389}');
-            } else {
-                // Continue guessing
-                bot.event('/guessstatus', msg);
-            }
-        }).catch((rej) => {
-            // Catch Invalid data
-            msg.reply.text(
-                'Something bad happened!\n' +
-                'Reason: ' + rej);
-        });
-    }
-});
-// Ends the guessing game
-bot.on('/stopguess', (msg: any) => {
-    if (!isInit(msg)) {
-        return msg.reply.text('Please initialize bot first? Stupid.');
-    } else if (!hasGuessGame(msg)) {
-        return msg.reply.text('There is no ongoing game now. Start one with /startguess!');
+            case 'ggstop':
+                if (hasGuessGame(msg)) {
+                    Promise.resolve().then((res) => {
+                        let answerString: string = '';
+                        chats[chatIndex].guessGame.getAnswer().forEach((num) => {
+                            answerString += num;
+                        });
+                        return msg.reply.text(
+                            'Looks like ' + msg.from.first_name + ' decided to give up.\n' +
+                            'The answer was: ' + answerString + '. Better luck next time!'
+                        );
+                    }).then((res) => {
+                        delete chats[chatIndex].guessGame;
+                    });
+                } else {
+                    return msg.reply.text(noGuessGameText);
+                }
+                break;
+            case 'gg':
+                if (hasGuessGame(msg)) {
+                    Promise.resolve().then((res) => {
+                        // Get data and check for validity
+                        let data = getData(msg);
+                        return chats[chatIndex].guessGame.checkData(data);
+                    }).then((res) => {
+                        if (res.isValid) {
+                            // Submit the answer 
+                            return chats[chatIndex].guessGame.submitGuess(res.numArr, msg.from.first_name);
+                        } else {
+                            // Invalid data, throw!
+                            throw res.reason;
+                        }
+                    }).then((res) => {
+                        if (res) {
+                            return msg.reply.text(
+                                '\u{1f389} \u{1f38a} \u{1f389} \u{1f38a} \u{1f389} \u{1f38a} \n' +
+                                msg.from.first_name + ' made a LUCKY GUESS of ' + getData(msg) + ' and won!\n' +
+                                '\u{1f389} \u{1f38a} \u{1f389} \u{1f38a} \u{1f389} \u{1f38a}').then((res: any) => {
+                                    delete chats[chatIndex].guessGame;
+                                });
+                        } else {
+                            let dispMsg = chats[chatIndex].guessGame.getDisplayMsg();
+                            let dispText = chats[chatIndex].guessGame.getStatusText();
+                            if (dispMsg !== -1) {
+                                return bot.editMessageText({ chatId: msg.chat.id, messageId: dispMsg }, dispText);
+                            } else {
+                                msg.reply.text(dispText).then((res: any) => {
+                                    chats[chatIndex].guessGame.setDisplayMsg(res.result.message_id);
+                                });
+                            }
+                        }
+                    }).then((res) => {
+                        return bot.deleteMessage(msg.chat.id, msg.message_id);
+                    }).catch((reason) => {
+                        msg.reply.text(
+                            'Sorry ' + msg.from.first_name + ', a disaster occured!' +
+                            'Error: ' + reason
+                        ).then((res: any) => {
+                            return setTimeout(() => {
+                                bot.deleteMessage(msg.chat.id, res.result.message_id);
+                            }, 3000);
+                        });
+                        console.log(reason);
+                    });
+                } else {
+                    return msg.reply.text(noGuessGameText)
+                }
+                break;
+            case 'ggstatus':
+                if (hasGuessGame(msg)) {
+                    let dispText = chats[chatIndex].guessGame.getStatusText();
+                    msg.reply.text(dispText).then((res: any) => {
+                        chats[chatIndex].guessGame.setDisplayMsg(res.result.message_id);
+                    });
+                } else {
+                    return msg.reply.text(noGuessGameText);
+                }
+                break;
+            default:
+                console.log('G R E A T   D I S A S T E R !')
+        }
     } else {
-        let chatIndex = getChatIndex(msg.chat.id);
-        Promise.resolve().then((res) => {
-            // Acknowledge command and reveal results
-            return msg.reply.text(
-                'I knew you guys couldn\'t solve it. Losers!\n' +
-                'The answer was ' + chats[chatIndex].guessGame.getAnswer().toString());
-        }).then((res) => {
-            // Remove game
-            delete chats[chatIndex].guessGame;
-        });
-    }
-});
-//  Replies with the current status of the game
-bot.on('/guessstatus', (msg: any) => {
-    if (!isInit(msg)) {
-        return msg.reply.text('Please initialize bot first? Stupid.');
-    } else if (!hasGuessGame(msg)) {
-        return msg.reply.text('There is no ongoing game now. Start one with /startguess!');
-    } else {
-        // Prints updated status
-        let chatIndex = getChatIndex(msg.chat.id);
-        let attempts = chats[chatIndex].guessGame.getAttempts();
-        let reply =
-            '===GuessGame Status===\n' +
-            'Difficulty: ' + chats[chatIndex].guessGame.getAnswer().length + '\n' +
-            '==Legend==\n' +
-            '\u{1f535}: Correct digit, correct position\n' +
-            '\u{1f534}: Correct digit, wrong position\n\n';
-
-        attempts.forEach((attempt: Attempt, index: number) => {
-            let guessStr: string = '';
-            attempt.getGuess().forEach((digit) => {
-                guessStr = guessStr + digit;
-            });
-
-            let addOn: string =
-                '[#' + (index + 1) + '] -- ' + attempt.getGuesser() + '\n' +
-                '< ' + guessStr + ' >    \u{1f535} [' + attempt.getResult().correct + ']    \u{1f534} [' + attempt.getResult().numOnly + ']\n';
-            reply += addOn;
-        });
-        return msg.reply.text(reply);
+        return msg.reply.text('Sorry pal, looks like I don\'t know you guys yet. Please run /start first.');
     }
 });
 
