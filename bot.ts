@@ -183,7 +183,20 @@ bot.on(['/ggstart', '/ggstop', '/gg', '/ggstatus'], (msg: any) => {
         switch (command) {
             case 'ggstart':
                 if (!hasGuessGame(msg)) {
-                    let difficulty = 5; // TODO: allow player to select difficulty?
+                    let difficulty = 10;
+                    let data = getData(msg);
+                    if (data.length > 0) {
+                        let checkResult = GuessGame.checkDifficulty(data);
+                        if (!checkResult.isValid) {
+                            return msg.reply.text(
+                                'DISASTER STRIKES!\n' +
+                                checkResult.reason
+                            );
+                        } else {
+                            difficulty = checkResult.value;
+                        }
+                    }
+
                     chats[chatIndex].guessGame = new GuessGame(difficulty);
                     return msg.reply.text(
                         '=== GuessGame ===\n' +
