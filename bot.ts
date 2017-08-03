@@ -183,7 +183,20 @@ bot.on(['/ggstart', '/ggstop', '/gg', '/ggstatus'], (msg: any) => {
         switch (command) {
             case 'ggstart':
                 if (!hasGuessGame(msg)) {
-                    let difficulty = 5; // TODO: allow player to select difficulty?
+                    let difficulty = 10;
+                    let data = getData(msg);
+                    if (data.length > 0) {
+                        let checkResult = GuessGame.checkDifficulty(data);
+                        if (!checkResult.isValid) {
+                            return msg.reply.text(
+                                'DISASTER STRIKES!\n' +
+                                checkResult.reason
+                            );
+                        } else {
+                            difficulty = checkResult.value;
+                        }
+                    }
+
                     chats[chatIndex].guessGame = new GuessGame(difficulty);
                     return msg.reply.text(
                         '=== GuessGame ===\n' +
@@ -253,7 +266,7 @@ bot.on(['/ggstart', '/ggstop', '/gg', '/ggstatus'], (msg: any) => {
                         return bot.deleteMessage(msg.chat.id, msg.message_id);
                     }).catch((reason) => {
                         msg.reply.text(
-                            'Sorry ' + msg.from.first_name + ', a disaster occured!' +
+                            'Sorry ' + msg.from.first_name + ', a disaster occured!\n' +
                             'Error: ' + reason
                         ).then((res: any) => {
                             return setTimeout(() => {
@@ -269,8 +282,10 @@ bot.on(['/ggstart', '/ggstop', '/gg', '/ggstatus'], (msg: any) => {
             case 'ggstatus':
                 if (hasGuessGame(msg)) {
                     let dispText = chats[chatIndex].guessGame.getStatusText();
+                    let oldDispMsg = chats[chatIndex].guessGame.getDisplayMsg();
                     msg.reply.text(dispText).then((res: any) => {
                         chats[chatIndex].guessGame.setDisplayMsg(res.result.message_id);
+                        bot.deleteMessage(msg.chat.id, oldDispMsg);
                     });
                 } else {
                     return msg.reply.text(noGuessGameText);

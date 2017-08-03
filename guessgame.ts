@@ -25,12 +25,27 @@ export class GuessGame {
     private answer: Array<number>;
     private attempts: Array<Attempt>;
     private displayMsg: number;
+    static maxDiff: number = 50;
+    static minDiff: number = 1;
 
     constructor(size: number) {
         this.answer = GuessGame.newAnswer(size);
         this.attempts = [];
         this.displayMsg = -1;
     };
+
+    static checkDifficulty(data: string): { isValid: boolean, value: number, reason: string } {
+        let difficulty = Number.parseInt(data);
+        let result = { isValid: true, value: difficulty, reason: '' };
+        if (Number.isNaN(difficulty)) {
+            result.isValid = false;
+            result.reason = '\'' + data + '\' could not be parsed into a number!';
+        } else if (difficulty > this.maxDiff || difficulty < this.minDiff) {
+            result.isValid = false;
+            result.reason = 'Difficulty level should be between ' + this.minDiff + ' and ' + this.maxDiff + ', but got ' + difficulty + ' instead!';
+        }
+        return result;
+    }
 
     checkData(data: string): { isValid: boolean, numArr: Array<number>, reason: string } {
         let isValid: boolean = true;
@@ -57,6 +72,7 @@ export class GuessGame {
 
         return { isValid, numArr, reason };
     }
+
 
     getStatusText(): string {
         let result: string =
