@@ -73,6 +73,73 @@ export class GuessGame {
         return { isValid, numArr, reason };
     }
 
+    getGameEndSummary(gameResult: { name: string, won: boolean }): string {
+        let playerDetailsList: Array<{ name: string, attempts: number }> = [];
+        this.attempts.forEach((attempt: Attempt) => {
+            let playerDetailIndex = playerDetailsList.findIndex((plyr) => {
+                return plyr.name === attempt.getGuesser();
+            });
+            if (playerDetailIndex === -1) {
+                // Newly found player
+                let player = { name: attempt.getGuesser(), attempts: 1 };
+                playerDetailsList.push(player)
+            } else {
+                // Existing player
+                playerDetailsList[playerDetailIndex].attempts++;
+            }
+        });
+
+        let result =
+            '=== GuessGame Summary ===\n' +
+            'Difficulty: ' + this.answer.length + ' digits\n' +
+            'Total Attempts: ' + this.attempts.length + '\n\n';
+
+        playerDetailsList.forEach((plyr) => {
+            let percentage: string = (plyr.attempts / this.attempts.length * 100).toFixed(1);
+            result += plyr.name + ' made ' + plyr.attempts + ' guesses. (' + (plyr.attempts / this.attempts.length * 100).toFixed(1) + '% of guesses)\n';
+        });
+
+        // ACHIEVEMENTS DETECTION
+        let hasAchievements = false;
+        let achievements = '\n' +
+            '== Achievements ==\n';
+
+        // Lonely Planet
+        if (playerDetailsList.length === 1) {
+            achievements += playerDetailsList[0].name + ' was awarded "Loneliest Planet".\n';
+            hasAchievements = true;
+        }
+
+        // Game Won Achievements
+        if (gameResult.won) {
+            // Kill Steal
+            let killStealer = playerDetailsList.find((plyr) => {
+                let percentage: number = (plyr.attempts / this.attempts.length * 100);
+                return (percentage < 25);
+            });
+            if (typeof killStealer !== 'undefined' && killStealer.name === gameResult.name) {
+                hasAchievements = true;
+                achievements += killStealer.name + ' was awarded "Stealer of Kills".\n';
+            }
+
+            // Best Supporting Guesser
+            let bestSupport = playerDetailsList.find((plyr) => {
+                let percentage: number = (plyr.attempts / this.attempts.length * 100);
+                return (percentage > 75);
+            });
+            if (typeof bestSupport !== 'undefined' && gameResult.name !== bestSupport.name) {
+                hasAchievements = true;
+                achievements += bestSupport + ' was awarded "Best Supporting Guesser".\n';
+            }
+        } else {
+            // Achievements for losing game TBD
+        }
+        if (hasAchievements) {
+            result += achievements;
+        }
+
+        return result;
+    }
 
     getStatusText(): string {
         let result: string =

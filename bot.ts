@@ -222,6 +222,8 @@ bot.on(['/ggstart', '/ggstop', '/gg', '/ggstatus'], (msg: any) => {
                             'Looks like ' + msg.from.first_name + ' decided to give up.\n' +
                             'The answer was: ' + answerString + '. Better luck next time!'
                         );
+                    }).then((res: any) => {
+                        return msg.reply.text(chats[chatIndex].guessGame.getGameEndSummary({ name: msg.from.first_name, won: false }))
                     }).then((res) => {
                         delete chats[chatIndex].guessGame;
                     });
@@ -249,6 +251,8 @@ bot.on(['/ggstart', '/ggstop', '/gg', '/ggstatus'], (msg: any) => {
                                 '\u{1f389} \u{1f38a} \u{1f389} \u{1f38a} \u{1f389} \u{1f38a} \n' +
                                 msg.from.first_name + ' made a LUCKY GUESS of ' + getData(msg) + ' and won!\n' +
                                 '\u{1f389} \u{1f38a} \u{1f389} \u{1f38a} \u{1f389} \u{1f38a}').then((res: any) => {
+                                    return msg.reply.text(chats[chatIndex].guessGame.getGameEndSummary({ name: msg.from.first_name, won: true }))
+                                }).then((res: any) => {
                                     delete chats[chatIndex].guessGame;
                                 });
                         } else {
