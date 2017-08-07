@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npm run build:live",
-    "build:live": "nodemon --exec ts-node -- bot.ts"
+    "build:live": "nodemon --exec ts-node -- main.ts"
   },
   "author": "stickyfishes",
   "license": "MIT",
@@ -17,7 +17,10 @@
     "typescript": "^2.4.2"
   },
   "dependencies": {
+    "@types/lodash": "^4.14.71",
     "dotenv": "^4.0.0",
+    "lodash": "^4.17.4",
+    "moment": "^2.18.1",
     "telebot": "^1.2.3"
   }
 }

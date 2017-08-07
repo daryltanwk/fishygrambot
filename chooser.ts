@@ -1,3 +1,6 @@
+import { bot } from './bot';
+import { TheBot } from './main';
+
 export class Chooser {
     static maxLength: number = 30;
     constructor(private items: Array<string>) { }
@@ -95,3 +98,81 @@ export class Chooser {
         return { isValid, indices: finalIndices, reason };
     }
 }
+
+// CHOOSER MODULE COMMANDS
+bot.on(['/additem', '/removeitem', '/listitem', '/pickitem'], (msg: any) => {
+    if (TheBot.isInit(msg)) {
+        let chatIndex = TheBot.getChatIndex(msg.chat.id);
+        // Do Logic
+        let rawCommand = TheBot.getCommand(msg);
+        let command = rawCommand.split('@')[0];
+        switch (command) {
+            case 'additem':
+                Promise.resolve().then((res) => {
+                    // Get the data
+                    let data = TheBot.getData(msg);
+                    return Chooser.validateData(data);
+                }).then((res) => {
+                    if (res.isValid) {
+                        TheBot.chats[chatIndex].getChooser().addItems(res.itemArr);
+                        let reply = 'Added:\n';
+                        res.itemArr.forEach((item) => {
+                            reply += item + ', ';
+                        });
+                        return msg.reply.text(reply.slice(0, reply.length - 2));
+
+                    } else {
+                        throw 'Error: ' + res.reason;
+                    }
+                }).catch((reason) => {
+                    console.log(reason);
+                    msg.reply.text('Couldn\'t add the item(s).\n' + reason);
+                });
+                break;
+            case 'removeitem':
+                Promise.resolve().then((res) => {
+                    // Get the data
+                    let data = TheBot.getData(msg);
+                    return Chooser.validateIndices(data, TheBot.chats[chatIndex].getChooser().getItems())
+                }).then((res) => {
+                    if (res.isValid) {
+                        let removedItems = TheBot.chats[chatIndex].getChooser().removeItems(res.indices);
+                        let reply = 'Removed:\n';
+                        removedItems.forEach((itm) => {
+                            reply += itm + ', ';
+                        });
+                        return msg.reply.text(reply.slice(0, reply.length - 2));
+
+                    } else {
+                        throw 'Error: ' + res.reason;
+                    }
+                }).catch((reason) => {
+                    console.log(reason);
+                    msg.reply.text('Couldn\'t remove the item(s).\n' + reason);
+                });
+                break;
+            case 'listitem':
+                let itemsToList = TheBot.chats[chatIndex].getChooser().getItems();
+                if (itemsToList.length <= 0) {
+                    return msg.reply.text('List is empty! Use /additem to add some items!');
+                }
+                let reply = '=== Current Items ===\n';
+                itemsToList.forEach((item, index) => {
+                    reply += (index + 1) + ') ' + item + '\n';
+                });
+                return msg.reply.text(reply);
+            case 'pickitem':
+                let listOfItems = TheBot.chats[chatIndex].getChooser().getItems();
+                if (listOfItems.length <= 0) {
+                    return msg.reply.text('List is empty! Use /additem to add some items!');
+                }
+                let chosenOne = Math.floor(Math.random() * listOfItems.length);
+                return msg.reply.text(listOfItems[chosenOne]);
+            default:
+                console.log('Disaster happened!');
+                break;
+        }
+    } else {
+        return msg.reply.text('I haven\'t been properly introduced to the group! Please run /start first!');
+    }
+});

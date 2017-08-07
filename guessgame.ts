@@ -1,3 +1,6 @@
+import { bot } from './bot';
+import { TheBot } from './main';
+
 export class Attempt {
     constructor(
         private guesser: string,
@@ -160,8 +163,130 @@ export class GuessGame {
     }
 }
 
-// let game = new GuessGame(3);
-// console.log(game.getAnswer());
-// game.submitGuess(GuessGame.newAnswer(3));
-// console.log(game.getAttempts()[0].getGuess());
-// console.log(game.getAttempts()[0].getResult());
+// GUESSGAME MODULE COMMANDS
+bot.on(['/ggstart', '/ggstop', '/gg', '/ggstatus'], (msg: any) => {
+    if (TheBot.isInit(msg)) {
+        let noGuessGameText = 'There is no ongoing game at the moment. Run /ggstart to start a new GuessGame!';
+
+        let chatIndex = TheBot.getChatIndex(msg.chat.id);
+        let data = TheBot.getData(msg);
+        let command = TheBot.getCommand(msg).split('@')[0];
+
+        switch (command) {
+            case 'ggstart':
+                if (!TheBot.hasGuessGame(msg)) {
+                    let difficulty = 10;
+                    let data = TheBot.getData(msg);
+                    if (data.length > 0) {
+                        let checkResult = GuessGame.checkDifficulty(data);
+                        if (!checkResult.isValid) {
+                            return msg.reply.text(
+                                'DISASTER STRIKES!\n' +
+                                checkResult.reason
+                            );
+                        } else {
+                            difficulty = checkResult.value;
+                        }
+                    }
+
+                    TheBot.chats[chatIndex].addGuessGame(difficulty);
+                    return msg.reply.text(
+                        '=== GuessGame ===\n' +
+                        'Difficulty: ' + difficulty + ' digits\n\n' +
+
+                        'Use /gg <number> to make a guess\n' +
+                        'Use /ggstatus to check status of the game\n' +
+                        'Use /ggstop to end the game and reveal the answer\n\n' +
+
+                        'Good luck! You\'re going to need it'
+                    );
+                } else {
+                    return msg.reply.text('There is already an ongoing game! Type /ggstatus to check the status of the game!');
+                }
+            case 'ggstop':
+                if (TheBot.hasGuessGame(msg)) {
+                    Promise.resolve().then((res) => {
+                        let answerString: string = '';
+                        TheBot.chats[chatIndex].getGuessGame().getAnswer().forEach((num) => {
+                            answerString += num;
+                        });
+                        return msg.reply.text(
+                            'Looks like ' + msg.from.first_name + ' decided to give up.\n' +
+                            'The answer was: ' + answerString + '. Better luck next time!'
+                        );
+                    }).then((res) => {
+                        TheBot.chats[chatIndex].removeGuessGame();
+                    });
+                } else {
+                    return msg.reply.text(noGuessGameText);
+                }
+                break;
+            case 'gg':
+                if (TheBot.hasGuessGame(msg)) {
+                    Promise.resolve().then((res) => {
+                        // Get data and check for validity
+                        let data = TheBot.getData(msg);
+                        return TheBot.chats[chatIndex].getGuessGame().checkData(data);
+                    }).then((res) => {
+                        if (res.isValid) {
+                            // Submit the answer 
+                            return TheBot.chats[chatIndex].getGuessGame().submitGuess(res.numArr, msg.from.first_name);
+                        } else {
+                            // Invalid data, throw!
+                            throw res.reason;
+                        }
+                    }).then((res) => {
+                        if (res) {
+                            return msg.reply.text(
+                                '\u{1f389} \u{1f38a} \u{1f389} \u{1f38a} \u{1f389} \u{1f38a} \n' +
+                                msg.from.first_name + ' made a LUCKY GUESS of ' + TheBot.getData(msg) + ' and won!\n' +
+                                '\u{1f389} \u{1f38a} \u{1f389} \u{1f38a} \u{1f389} \u{1f38a}').then((res: any) => {
+                                    TheBot.chats[chatIndex].removeGuessGame();
+                                });
+                        } else {
+                            let dispMsg = TheBot.chats[chatIndex].getGuessGame().getDisplayMsg();
+                            let dispText = TheBot.chats[chatIndex].getGuessGame().getStatusText();
+                            if (dispMsg !== -1) {
+                                return bot.editMessageText({ chatId: msg.chat.id, messageId: dispMsg }, dispText);
+                            } else {
+                                msg.reply.text(dispText).then((res: any) => {
+                                    TheBot.chats[chatIndex].getGuessGame().setDisplayMsg(res.result.message_id);
+                                });
+                            }
+                        }
+                    }).then((res) => {
+                        return bot.deleteMessage(msg.chat.id, msg.message_id);
+                    }).catch((reason) => {
+                        msg.reply.text(
+                            'Sorry ' + msg.from.first_name + ', a disaster occured!\n' +
+                            'Error: ' + reason
+                        ).then((res: any) => {
+                            return setTimeout(() => {
+                                bot.deleteMessage(msg.chat.id, res.result.message_id);
+                            }, 3000);
+                        });
+                        console.log(reason);
+                    });
+                } else {
+                    return msg.reply.text(noGuessGameText)
+                }
+                break;
+            case 'ggstatus':
+                if (TheBot.hasGuessGame(msg)) {
+                    let dispText = TheBot.chats[chatIndex].getGuessGame().getStatusText();
+                    let oldDispMsg = TheBot.chats[chatIndex].getGuessGame().getDisplayMsg();
+                    msg.reply.text(dispText).then((res: any) => {
+                        TheBot.chats[chatIndex].getGuessGame().setDisplayMsg(res.result.message_id);
+                        bot.deleteMessage(msg.chat.id, oldDispMsg);
+                    });
+                } else {
+                    return msg.reply.text(noGuessGameText);
+                }
+                break;
+            default:
+                console.log('G R E A T   D I S A S T E R !')
+        }
+    } else {
+        return msg.reply.text('Sorry pal, looks like I don\'t know you guys yet. Please run /start first.');
+    }
+});
