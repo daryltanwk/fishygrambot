@@ -1,5 +1,5 @@
 import { bot } from './bot';
-import { TheBot } from './main';
+import * as TheBot from './main';
 
 export class Chooser {
     static maxLength: number = 30;
@@ -114,7 +114,7 @@ bot.on(['/additem', '/removeitem', '/listitem', '/pickitem'], (msg: any) => {
                     return Chooser.validateData(data);
                 }).then((res) => {
                     if (res.isValid) {
-                        TheBot.chats[chatIndex].getChooser().addItems(res.itemArr);
+                        TheBot.getChats()[chatIndex].getChooser().addItems(res.itemArr);
                         let reply = 'Added:\n';
                         res.itemArr.forEach((item) => {
                             reply += item + ', ';
@@ -133,10 +133,10 @@ bot.on(['/additem', '/removeitem', '/listitem', '/pickitem'], (msg: any) => {
                 Promise.resolve().then((res) => {
                     // Get the data
                     let data = TheBot.getData(msg);
-                    return Chooser.validateIndices(data, TheBot.chats[chatIndex].getChooser().getItems())
+                    return Chooser.validateIndices(data, TheBot.getChats()[chatIndex].getChooser().getItems())
                 }).then((res) => {
                     if (res.isValid) {
-                        let removedItems = TheBot.chats[chatIndex].getChooser().removeItems(res.indices);
+                        let removedItems = TheBot.getChats()[chatIndex].getChooser().removeItems(res.indices);
                         let reply = 'Removed:\n';
                         removedItems.forEach((itm) => {
                             reply += itm + ', ';
@@ -152,7 +152,7 @@ bot.on(['/additem', '/removeitem', '/listitem', '/pickitem'], (msg: any) => {
                 });
                 break;
             case 'listitem':
-                let itemsToList = TheBot.chats[chatIndex].getChooser().getItems();
+                let itemsToList = TheBot.getChats()[chatIndex].getChooser().getItems();
                 if (itemsToList.length <= 0) {
                     return msg.reply.text('List is empty! Use /additem to add some items!');
                 }
@@ -162,7 +162,7 @@ bot.on(['/additem', '/removeitem', '/listitem', '/pickitem'], (msg: any) => {
                 });
                 return msg.reply.text(reply);
             case 'pickitem':
-                let listOfItems = TheBot.chats[chatIndex].getChooser().getItems();
+                let listOfItems = TheBot.getChats()[chatIndex].getChooser().getItems();
                 if (listOfItems.length <= 0) {
                     return msg.reply.text('List is empty! Use /additem to add some items!');
                 }

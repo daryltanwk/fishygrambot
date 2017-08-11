@@ -1,56 +1,53 @@
 import { Chat } from './chat';
 import { bot } from './bot';
 
-module TheBot {
-    export let chats: Array<Chat> = [];
+let chats: Array<Chat> = [];
 
-    export function getChats() {
-        return chats;
-    }
-    export function addChat(chat: Chat) {
-        chats.push(chat);
-    }
+// Common Functions for all modules
+export function getChats() {
+    return chats;
+}
 
-    export function isInit(msg: any): boolean {
-        let chatId = msg.chat.id;
-        if (chats.length === 0) {
-            return false;
-        } else {
-            let index: number;
-            index = chats.findIndex((chat: Chat) => {
-                return (chat.chatId === chatId);
-            });
-            return !(index === -1);
-        }
-    }
+export function addChat(chat: Chat) {
+    chats.push(chat);
+}
 
-    export function hasGuessGame(msg: any) {
-        let chatId = msg.chat.id;
-        let chatIndex = getChatIndex(chatId);
-        return (typeof chats[chatIndex].getGuessGame() !== 'undefined');
-    }
-
-    export function getCommand(msg: any): string {
-        return (<string>msg.text).slice(1, msg.entities[0].length);
-    }
-
-    export function getData(msg: any): string {
-        const offset: number = msg.entities[0].length;
-        const data: string = (<string>msg.text).slice(offset + 1);
-        return data;
-    }
-
-    export function getChatIndex(chatId: string): number {
-        return chats.findIndex((chat) => {
+export function isInit(msg: any): boolean {
+    let chatId = msg.chat.id;
+    if (chats.length === 0) {
+        return false;
+    } else {
+        let index: number;
+        index = chats.findIndex((chat: Chat) => {
             return (chat.chatId === chatId);
         });
+        return !(index === -1);
     }
 }
 
-// FUNCTIONS
+export function hasGuessGame(msg: any) {
+    let chatId = msg.chat.id;
+    let chatIndex = getChatIndex(chatId);
+    return (typeof chats[chatIndex].getGuessGame() !== 'undefined');
+}
 
+export function getCommand(msg: any): string {
+    return (<string>msg.text).slice(1, msg.entities[0].length);
+}
 
-// BOT LOGIC
+export function getData(msg: any): string {
+    const offset: number = msg.entities[0].length;
+    const data: string = (<string>msg.text).slice(offset + 1);
+    return data;
+}
+
+export function getChatIndex(chatId: string): number {
+    return chats.findIndex((chat) => {
+        return (chat.chatId === chatId);
+    });
+}
+
+// Bot Initialization
 
 bot.on('/start', (msg: any) => {
     /* 
@@ -72,12 +69,12 @@ bot.on('/start', (msg: any) => {
                     'Checking if I know you guys...'
                 );
             }).then((res) => {
-                if (TheBot.isInit(msg)) {
+                if (isInit(msg)) {
                     msg.reply.text('Yes! I\'ve previously been introduced to ' + msg.chat.title + '!');
                     throw 'Chat previously initialized';
                 } else {
                     let chat = new Chat(msg.chat.id);
-                    TheBot.addChat(chat);
+                    addChat(chat);
                     return msg.reply.text('Nope. Initializing now...');
                 }
             }).then((res) => {
@@ -94,5 +91,9 @@ bot.on('/start', (msg: any) => {
             break;
     }
 
+});
+
+bot.on('/help', (msg: any) => {
+    // Send help message
 });
 

@@ -1,5 +1,5 @@
 import { bot } from './bot';
-import { TheBot } from './main';
+import * as TheBot from './main';
 
 export class Attempt {
     constructor(
@@ -189,7 +189,7 @@ bot.on(['/ggstart', '/ggstop', '/gg', '/ggstatus'], (msg: any) => {
                         }
                     }
 
-                    TheBot.chats[chatIndex].addGuessGame(difficulty);
+                    TheBot.getChats()[chatIndex].addGuessGame(difficulty);
                     return msg.reply.text(
                         '=== GuessGame ===\n' +
                         'Difficulty: ' + difficulty + ' digits\n\n' +
@@ -207,7 +207,7 @@ bot.on(['/ggstart', '/ggstop', '/gg', '/ggstatus'], (msg: any) => {
                 if (TheBot.hasGuessGame(msg)) {
                     Promise.resolve().then((res) => {
                         let answerString: string = '';
-                        TheBot.chats[chatIndex].getGuessGame().getAnswer().forEach((num) => {
+                        TheBot.getChats()[chatIndex].getGuessGame().getAnswer().forEach((num) => {
                             answerString += num;
                         });
                         return msg.reply.text(
@@ -215,7 +215,7 @@ bot.on(['/ggstart', '/ggstop', '/gg', '/ggstatus'], (msg: any) => {
                             'The answer was: ' + answerString + '. Better luck next time!'
                         );
                     }).then((res) => {
-                        TheBot.chats[chatIndex].removeGuessGame();
+                        TheBot.getChats()[chatIndex].removeGuessGame();
                     });
                 } else {
                     return msg.reply.text(noGuessGameText);
@@ -226,11 +226,11 @@ bot.on(['/ggstart', '/ggstop', '/gg', '/ggstatus'], (msg: any) => {
                     Promise.resolve().then((res) => {
                         // Get data and check for validity
                         let data = TheBot.getData(msg);
-                        return TheBot.chats[chatIndex].getGuessGame().checkData(data);
+                        return TheBot.getChats()[chatIndex].getGuessGame().checkData(data);
                     }).then((res) => {
                         if (res.isValid) {
                             // Submit the answer 
-                            return TheBot.chats[chatIndex].getGuessGame().submitGuess(res.numArr, msg.from.first_name);
+                            return TheBot.getChats()[chatIndex].getGuessGame().submitGuess(res.numArr, msg.from.first_name);
                         } else {
                             // Invalid data, throw!
                             throw res.reason;
@@ -241,16 +241,16 @@ bot.on(['/ggstart', '/ggstop', '/gg', '/ggstatus'], (msg: any) => {
                                 '\u{1f389} \u{1f38a} \u{1f389} \u{1f38a} \u{1f389} \u{1f38a} \n' +
                                 msg.from.first_name + ' made a LUCKY GUESS of ' + TheBot.getData(msg) + ' and won!\n' +
                                 '\u{1f389} \u{1f38a} \u{1f389} \u{1f38a} \u{1f389} \u{1f38a}').then((res: any) => {
-                                    TheBot.chats[chatIndex].removeGuessGame();
+                                    TheBot.getChats()[chatIndex].removeGuessGame();
                                 });
                         } else {
-                            let dispMsg = TheBot.chats[chatIndex].getGuessGame().getDisplayMsg();
-                            let dispText = TheBot.chats[chatIndex].getGuessGame().getStatusText();
+                            let dispMsg = TheBot.getChats()[chatIndex].getGuessGame().getDisplayMsg();
+                            let dispText = TheBot.getChats()[chatIndex].getGuessGame().getStatusText();
                             if (dispMsg !== -1) {
                                 return bot.editMessageText({ chatId: msg.chat.id, messageId: dispMsg }, dispText);
                             } else {
                                 msg.reply.text(dispText).then((res: any) => {
-                                    TheBot.chats[chatIndex].getGuessGame().setDisplayMsg(res.result.message_id);
+                                    TheBot.getChats()[chatIndex].getGuessGame().setDisplayMsg(res.result.message_id);
                                 });
                             }
                         }
@@ -273,10 +273,10 @@ bot.on(['/ggstart', '/ggstop', '/gg', '/ggstatus'], (msg: any) => {
                 break;
             case 'ggstatus':
                 if (TheBot.hasGuessGame(msg)) {
-                    let dispText = TheBot.chats[chatIndex].getGuessGame().getStatusText();
-                    let oldDispMsg = TheBot.chats[chatIndex].getGuessGame().getDisplayMsg();
+                    let dispText = TheBot.getChats()[chatIndex].getGuessGame().getStatusText();
+                    let oldDispMsg = TheBot.getChats()[chatIndex].getGuessGame().getDisplayMsg();
                     msg.reply.text(dispText).then((res: any) => {
-                        TheBot.chats[chatIndex].getGuessGame().setDisplayMsg(res.result.message_id);
+                        TheBot.getChats()[chatIndex].getGuessGame().setDisplayMsg(res.result.message_id);
                         bot.deleteMessage(msg.chat.id, oldDispMsg);
                     });
                 } else {

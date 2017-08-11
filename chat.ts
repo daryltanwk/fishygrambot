@@ -1,4 +1,4 @@
-import { Activity } from './eventmgr';
+import { Planner } from './planner';
 import { Chooser } from './chooser';
 import { GuessGame } from './guessgame';
 import { Conversation, Topic } from "./conversation";
@@ -7,12 +7,18 @@ export class Chat {
     private conversations: Array<Conversation>;
     private guessGame: GuessGame;
     private chooser: Chooser;
-    private events: Array<Activity>;
+    private planner: Planner;
 
-    constructor(public chatId: string) {
+    constructor(
+        private chatId: string
+    ) {
         this.conversations = [];
         this.chooser = new Chooser([]);
-        this.events = [];
+        this.planner = new Planner(this.chatId);
+    }
+
+    getChatId(): string {
+        return this.chatId;
     }
 
     // CONVERSATION GETTER/SETTER
@@ -58,13 +64,8 @@ export class Chat {
     }
 
     // EVENTMGR GETTER/SETTERS
-    addEvent(name: string) {
-        let newEvent = new Activity(name);
-        this.events.push(newEvent);
-    }
 
-    removeEvent() { }
-    getEvents() {
-        return this.events;
+    getPlanner() {
+        return this.planner;
     }
 }

@@ -11,15 +11,16 @@
   "author": "stickyfishes",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^8.0.17",
+    "@types/node": "^8.0.20",
     "nodemon": "^1.11.0",
     "ts-node": "^3.3.0",
     "typescript": "^2.4.2"
   },
   "dependencies": {
-    "@types/lodash": "^4.14.71",
+    "@types/lodash": "^4.14.72",
     "dotenv": "^4.0.0",
     "lodash": "^4.17.4",
+    "lokijs": "^1.5.0",
     "moment": "^2.18.1",
     "telebot": "^1.2.3"
   }

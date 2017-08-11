@@ -1,12 +1,47 @@
 import { bot } from './bot';
 import { Topic, Conversation } from './conversation';
-import { TheBot } from './main';
+import * as TheBot from './main';
 import * as moment from 'moment';
+const loki = require('lokijs');
 
-export class Activity {
+export class Planner {
     static maxDetailLength = 1500;
     static maxActivityLength = 100;
 
+    private db: any;
+    private testCollect: any;
+
+    constructor(chatId: string) {
+        this.db = new loki('../' + 'chatId' + '.json', {
+            verbose: true,
+            autosave: true,
+            autoload: true,
+            autosaveInterval: 5000
+        });
+        console.log(this.db.loadDatabase());
+        if (!this.db.getCollection('testCollect')) {
+            console.log('new');
+            this.testCollect = this.db.addCollection('testCollect');
+        } else {
+            console.log('loaded');
+            this.testCollect = this.db.getCollection('testCollect');
+        }
+    }
+
+    addActivity(acty: Activity) {
+        console.log('===== inserting start =====');
+        console.log(this.testCollect.insert(acty));
+        console.log('===== inserting end =====');
+    }
+
+    removeActivity() { }
+    getActivity(lokiId: number) {
+        return this.testCollect.get(lokiId);
+    }
+
+}
+
+export class Activity {
     private participants: Array<string>;
     private venue: string;
     private activityDetails: string;
@@ -113,13 +148,16 @@ bot.on(['/evtadd', '/evtremove', '/evtlist', '/evtedit'], (msg: any) => {
                         replyToMessage,
                         replyMarkup,
                     })).then((res) => {
-                        TheBot.chats[chatIndex].addConversation(Topic.EVTADD, msg.from, res.result);
+                        TheBot.getChats()[chatIndex].addConversation(Topic.EVTADD, msg.from, res.result);
                     });
             case 'evtremove':
                 break;
             case 'evtlist':
+                console.log(TheBot.getChats()[chatIndex].getPlanner().getActivity(Number.parseInt(data)));
                 break;
             case 'evtedit':
+                TheBot.getChats()[chatIndex].getPlanner().addActivity(new Activity('boy oh boy'));
+
                 break;
             default:
                 break;
@@ -134,20 +172,20 @@ bot.on(['/evtadd', '/evtremove', '/evtlist', '/evtedit'], (msg: any) => {
 bot.on('text', (msg: any) => {
     if (TheBot.isInit(msg)) {
         let chatIndex = TheBot.getChatIndex(msg.chat.id);
-        if (TheBot.chats[chatIndex].getConversations().length > 0 && typeof msg.reply_to_message !== 'undefined') {
+        if (TheBot.getChats()[chatIndex].getConversations().length > 0 && typeof msg.reply_to_message !== 'undefined') {
             let reply = msg.reply_to_message;
-            let convoIndex = TheBot.chats[chatIndex].getConversations().findIndex((convo) => {
+            let convoIndex = TheBot.getChats()[chatIndex].getConversations().findIndex((convo) => {
                 return (convo.requestor.id === msg.from.id);
             });
             if (convoIndex !== -1) {
-                switch (TheBot.chats[chatIndex].getConversations()[convoIndex].topic) {
+                switch (TheBot.getChats()[chatIndex].getConversations()[convoIndex].topic) {
                     case Topic.EVTADD:
                         // User replied to a legit EVTADD
                         let evtName = msg.text;
                         if (Activity.checkName(evtName).isValid) {
                             let activity = new Activity(evtName);
-                            TheBot.chats[chatIndex].getEvents().push(activity);
-                            TheBot.chats[chatIndex].removeConversation(msg.from);
+                            TheBot.getChats()[chatIndex].getPlanner().addActivity(activity);
+                            TheBot.getChats()[chatIndex].removeConversation(msg.from);
                         }
                         break;
                     default:
